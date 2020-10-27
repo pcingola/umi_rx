@@ -5,7 +5,7 @@
 #include "htslib/vcf.h"
 
 #define SHOW_NLINES 10000
-#define SHOW_NLINES_NEWLINE 100*SHOW_NLINES
+#define SHOW_NLINES_NEWLINE (100*SHOW_NLINES)
 
 int main(int argc, char **argv) {
     if(argc != 3) {
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 
     bam1_t *aln = bam_init1();
     long read_num;
-    for (read_num = 0; sam_read1(in, header, aln) > 0; read_num++) {
+    for (read_num = 1; sam_read1(in, header, aln) > 0; read_num++) {
         char *read_name = bam_get_qname(aln);
         int32_t pos = aln->core.pos + 1;
         char *chr = header->target_name[aln->core.tid];
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("Finished: %ld reads processed\n", read_num);
+    printf("\nFinished: %ld reads processed\n", read_num);
 
     // Close files
     if (hts_close(out) < 0) {
