@@ -60,15 +60,15 @@ int main(int argc, char **argv) {
 
         // Check UMI length
         printf("umi length\tread_number=%ld\n", read_num);
-        int umilen = strlen(umi) + 1;
-        printf("umi length\tread_number=%ld\tlen=%d\n", read_num, strlen(umi));
+        long umilen = strlen(umi) + 1;
+        printf("umi length\tread_number=%ld\tlen=%ld\n", read_num, strlen(umi));
         if(umilen != 7) {
-            fprintf(stderr, "WARNING: UMI len is %d, read name, read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%d)='%s' \n", umilen, read_num, chr, pos, read_name, umilen, umi);
+            fprintf(stderr, "WARNING: UMI len is %ld, read name, read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%ld)='%s' \n", umilen, read_num, chr, pos, read_name, umilen, umi);
         }
 
         // Show every N reads
         if( read_num % 1 == 0 ) {
-            printf("read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%d)='%s'\n", read_num, chr, pos, read_name, umilen, umi);
+            printf("read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%ld)='%s'\n", read_num, chr, pos, read_name, umilen, umi);
         }
 
         // Add UMI to 'RX' tag
