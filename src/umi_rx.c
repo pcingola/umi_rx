@@ -44,14 +44,14 @@ int main(int argc, char **argv) {
     bam1_t *aln = bam_init1();
     long read_num;
     for (read_num = 0; sam_read1(in, header, aln) > 0; read_num++) {
-        printf("sam_read1\tread_number=%ld\n", read_num);
+        // printf("sam_read1\tread_number=%ld\n", read_num);
         char *read_name = bam_get_qname(aln);
         int32_t pos = aln->core.pos + 1;
         char *chr = header->target_name[aln->core.tid];
-        printf("aln parse\tread_number=%ld, chr='%s', pos=%d, read_name='%s'\n", read_num, chr, pos, read_name);
+        // printf("aln parse\tread_number=%ld, chr='%s', pos=%d, read_name='%s'\n", read_num, chr, pos, read_name);
 
         // Find UMI part
-        printf("find umi\tread_number=%ld\n", read_num);
+        // printf("find umi\tread_number=%ld\n", read_num);
         char *umi = strrchr(read_name, ':');
         if (!umi) {
             fprintf(stderr, "Error: Could not find UMI from read name, read_number=%ld, chr='%s', pos=%d, read_name='%s'\n", read_num, chr, pos, read_name);
@@ -60,27 +60,28 @@ int main(int argc, char **argv) {
         umi++; // We want the string starting right after ':'
 
         // Check UMI length
-        printf("umi length\tread_number=%ld\n", read_num);
+        // printf("umi length\tread_number=%ld\n", read_num);
         long umilen = strlen(umi) + 1;
-        printf("umi length\tread_number=%ld\tlen=%ld\tumi='%s'\n", read_num, strlen(umi), umi);
+        // printf("umi length\tread_number=%ld\tlen=%ld\tumi='%s'\n", read_num, strlen(umi), umi);
         if(umilen != 7) {
             fprintf(stderr, "WARNING: UMI len is %ld, read name, read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%ld)='%s' \n", umilen, read_num, chr, pos, read_name, umilen, umi);
         }
 
         // Show every N reads
         if( read_num % 1 == 0 ) {
-            printf("read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%ld)='%s'\n", read_num, chr, pos, read_name, umilen, umi);
+            // printf("read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%ld)='%s'\n", read_num, chr, pos, read_name, umilen, umi);
+            printf("read_number=%ld, chr='%s', pos=%d\n", read_num, chr, pos);
         }
 
         // Add UMI to 'RX' tag
-        printf("bam_aux_append\tread_number=%ld\n", read_num);
+        // printf("bam_aux_append\tread_number=%ld\n", read_num);
         if (bam_aux_append(aln, "RX", 'Z', umilen, (uint8_t *) umi) < 0) {
             fprintf(stderr, "Error updating RX tag");
             exit(1);
         }
 
         // Write alignment to output
-        printf("sam_write1\tread_number=%ld\n", read_num);
+        // printf("sam_write1\tread_number=%ld\n", read_num);
         if (sam_write1(out, header, aln) < 0) {
             fprintf(stderr, "Error writing output alignment, read_number=%ld, chr='%s', pos=%d, read_name='%s'\n", read_num, chr, pos, read_name);
             exit(1);
