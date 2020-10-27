@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
     bam1_t *aln = bam_init1();
     long read_num;
     for (read_num = 0; sam_read1(in, header, aln) > 0; read_num++) {
+        printf("sam_read1\tread_number=%ld\n", read_num);
         char *read_name = bam_get_qname(aln);
         int32_t pos = aln->core.pos + 1;
         char *chr = header->target_name[aln->core.tid];
@@ -68,13 +69,14 @@ int main(int argc, char **argv) {
         }
 
         // Add UMI to 'RX' tag
-        printf("bam_aux_append\tread_number=%ld'\n", read_num);
+        printf("bam_aux_append\tread_number=%ld\n", read_num);
         if (bam_aux_append(aln, "RX", 'Z', umilen, (uint8_t *) umi) < 0) {
             fprintf(stderr, "Error updating RX tag");
             exit(1);
         }
 
         // Write alignment to output
+        printf("sam_write1\tread_number=%ld\n", read_num);
         if (sam_write1(out, header, aln) < 0) {
             fprintf(stderr, "Error writing output alignment, read_number=%ld, chr='%s', pos=%d, read_name='%s'\n", read_num, chr, pos, read_name);
             exit(1);
