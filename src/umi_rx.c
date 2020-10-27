@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
         }
 
         // Add UMI to 'RX' tag
+        printf("bam_aux_append\tread_number=%ld'\n", read_num);
         if (bam_aux_append(aln, "RX", 'Z', umilen, (uint8_t *) umi) < 0) {
             fprintf(stderr, "Error updating RX tag");
             exit(1);
