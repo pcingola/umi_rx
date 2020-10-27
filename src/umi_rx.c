@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
         // Show every N reads
         if( read_num % 1 == 0 ) {
             // printf("read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%ld)='%s'\n", read_num, chr, pos, read_name, umilen, umi);
-            printf("read_number=%ld, chr='%s', pos=%d\n", read_num, chr, pos);
+            printf("read_number=%ld\n", read_num);
         }
 
         // Add UMI to 'RX' tag
