@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
         }
 
         // Show every N reads
-        if( read_num % 10000 == 0 ) {
+        if( read_num % 1 == 0 ) {
             printf("read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%d)='%s'\n", read_num, chr, pos, read_name, umilen, umi);
         }
 
