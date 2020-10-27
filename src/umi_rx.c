@@ -48,27 +48,33 @@ int main(int argc, char **argv) {
         int32_t pos = aln->core.pos + 1;
         char *chr = header->target_name[aln->core.tid];
 
-        // Show every 1M reads
-        if( read_num % 1000000 == 0 ) {
-            printf("read_number=%ld, chr=%s, pos=%d, read_name=%s\n", read_num, chr, pos, read_name);
-        }
-
         // Find UMI part
-        char *rx = strrchr(read_name, ':');
-        if (!rx) {
-            fprintf(stderr, "Error: Could not find UMI from read name, read_number=%ld, chr=%s, pos=%d, read_name=%s\n", read_num, chr, pos, read_name);
+        char *umi = strrchr(read_name, ':');
+        if (!umi) {
+            fprintf(stderr, "Error: Could not find UMI from read name, read_number=%ld, chr='%s', pos=%d, read_name='%s'\n", read_num, chr, pos, read_name);
             exit(1);
         }
 
+        // Check UMI length
+        int umilen = strlen(umi) + 1;
+        if(umilen != 6) {
+            fprintf(stderr, "WARNING: UMI len is %d, read name, read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%d)='%s' \n", umilen, read_num, chr, pos, read_name, umilen, umi);
+        }
+
+        // Show every N reads
+        if( read_num % 10000 == 0 ) {
+            printf("read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%d)='%s'\n", read_num, chr, pos, read_name, umilen, umi);
+        }
+
         // Add UMI to 'RX' tag
-        if (bam_aux_append(aln, "RX", 'Z', strlen(rx) + 1, (uint8_t *) rx) < 0) {
+        if (bam_aux_append(aln, "RX", 'Z', umilen, (uint8_t *) umi) < 0) {
             fprintf(stderr, "Error updating RX tag");
             exit(1);
         }
 
         // Write alignment to output
         if (sam_write1(out, header, aln) < 0) {
-            fprintf(stderr, "Error writing output alignment, read number %ld\n", read_num);
+            fprintf(stderr, "Error writing output alignment, read_number=%ld, chr='%s', pos=%d, read_name='%s'\n", read_num, chr, pos, read_name);
             exit(1);
         }
     }
