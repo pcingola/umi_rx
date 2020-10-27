@@ -50,6 +50,7 @@ int main(int argc, char **argv) {
         char *chr = header->target_name[aln->core.tid];
 
         // Find UMI part
+        printf("find umi\tread_number=%ld\n", read_num);
         char *umi = strrchr(read_name, ':');
         if (!umi) {
             fprintf(stderr, "Error: Could not find UMI from read name, read_number=%ld, chr='%s', pos=%d, read_name='%s'\n", read_num, chr, pos, read_name);
