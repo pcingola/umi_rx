@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
         // Check UMI length
         printf("umi length\tread_number=%ld\n", read_num);
         long umilen = strlen(umi) + 1;
-        printf("umi length\tread_number=%ld\tlen=%ld\n", read_num, strlen(umi));
+        printf("umi length\tread_number=%ld\tlen=%ld\tumi='%s'\n", read_num, strlen(umi), umi);
         if(umilen != 7) {
             fprintf(stderr, "WARNING: UMI len is %ld, read name, read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%ld)='%s' \n", umilen, read_num, chr, pos, read_name, umilen, umi);
         }
