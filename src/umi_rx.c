@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
         char *read_name = bam_get_qname(aln);
         int32_t pos = aln->core.pos + 1;
         char *chr = header->target_name[aln->core.tid];
+        printf("aln parse\tread_number=%ld, chr='%s', pos=%d, read_name='%s'\n", read_num, chr, pos, read_name);
 
         // Find UMI part
         printf("find umi\tread_number=%ld\n", read_num);
