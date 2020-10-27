@@ -3,5 +3,5 @@ set -o pipefail
 
 cd src
 
-mkdir ../bin || true
+mkdir -p ../bin
 gcc -o ../bin/umi_rx -L../htslib/lib -l hts umi_rx.c
