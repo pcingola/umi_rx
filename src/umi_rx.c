@@ -54,10 +54,11 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Error: Could not find UMI from read name, read_number=%ld, chr='%s', pos=%d, read_name='%s'\n", read_num, chr, pos, read_name);
             exit(1);
         }
+        umi++; // We want the string starting right after ':'
 
         // Check UMI length
         int umilen = strlen(umi) + 1;
-        if(umilen != 6) {
+        if(umilen != 7) {
             fprintf(stderr, "WARNING: UMI len is %d, read name, read_number=%ld, chr='%s', pos=%d, read_name='%s', umi(length=%d)='%s' \n", umilen, read_num, chr, pos, read_name, umilen, umi);
         }
 
