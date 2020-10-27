@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
         // Show every N reads
         if( read_num % SHOW_NLINES == 0 ) {
             putchar('.');
-            if( read_num % SHOW_NLINES_NEWLINE == 0 ) putchar('\n');
+            if( read_num % SHOW_NLINES_NEWLINE == 0 )   printf("\n%ld reads\t", read_num);
             fflush(stdout);
         }
 
