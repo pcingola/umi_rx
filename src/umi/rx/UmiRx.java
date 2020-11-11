@@ -73,7 +73,10 @@ public class UmiRx {
 	 * Process a SAM record, transform and write to outBam
 	 */
 	protected void process(SAMRecord sr) {
-		System.out.println(sr);
+		String umi = umi(sr);
+		sr.setAttribute("RX", umi);
+		System.out.println(umi + "\t" + sr);
+
 		samWriter.addAlignment(sr);
 	}
 
@@ -91,6 +94,19 @@ public class UmiRx {
 				break;
 			}
 		}
+	}
+
+	/**
+	 * UMI is the last entry in the read name (when splitting by ':')
+	 * Example:
+	 * 		Read name: A00324:79:HJ5CMDSXX:2:1101:19705:1172:CGCACG
+	 *      UMI      : CGCACG
+	 */
+	protected String umi(SAMRecord sr) {
+		String readName = sr.getReadName();
+		int idx = readName.lastIndexOf(':');
+		if (idx < 0) throw new RuntimeException("Could not find ':' in read name. Read: " + sr);
+		return readName.substring(idx + 1);
 	}
 
 }
