@@ -115,12 +115,15 @@ public class UmiRx {
 	 */
 	public void open() {
 		// Open input BAM
-		SamInputResource samIn = SamInputResource.of(inBam);
+		SamInputResource samIn = inBam.equals("-") ? SamInputResource.of(System.in) : SamInputResource.of(inBam);
+
 		samReader = SamReaderFactory.make().validationStringency(ValidationStringency.LENIENT).open(samIn);
 		SAMFileHeader samHeader = samReader.getFileHeader();
 
 		// Create output BAM file
-		samWriter = (new SAMFileWriterFactory()).makeBAMWriter(samHeader, false, new File(outBam));
+		//		SamInputResource samIn = inBam.equals("-") ? SamInputResource.of(System.in) : SamInputResource.of(inBam);
+		SAMFileWriterFactory swf = new SAMFileWriterFactory();
+		samWriter = outBam.equals("-") ? swf.makeBAMWriter(samHeader, false, System.out) : swf.makeBAMWriter(samHeader, false, new File(outBam));
 	}
 
 	protected void process(List<SAMRecord> srs) {
