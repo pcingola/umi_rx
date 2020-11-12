@@ -66,17 +66,36 @@ public class UmiRx {
 	}
 
 	/**
-	 * Add MC tag
+	 * Add MC tag, if it doesn't exits
 	 */
 	void addMc(SAMRecord sr, String cigarMate) {
-		sr.setAttribute(MC, cigarMate);
+		if (sr.getAttribute(MC) == null) sr.setAttribute(MC, cigarMate);
 	}
 
 	/**
-	 * Add MQ tag
+	 * Add MQ tag, if it doesn't exits
 	 */
 	void addMq(SAMRecord sr, int qualMate) {
-		sr.setAttribute(MQ, qualMate);
+		if (sr.getAttribute(MQ) == null) sr.setAttribute(MQ, qualMate);
+	}
+
+	/**
+	 * Add RX tag, if it doesn't exits.
+	 *
+	 * Get UMI from read name and add it as RX tag
+	 *
+	 * UMI is the last entry in the read name (when splitting by ':')
+	 * Example:
+	 * 		Read name: A00324:79:HJ5CMDSXX:2:1101:19705:1172:CGCACG
+	 *      UMI      : CGCACG
+	 */
+	protected void addRx(SAMRecord sr) {
+		if (sr.getAttribute(RX) != null) return;
+		String readName = sr.getReadName();
+		int idx = readName.lastIndexOf(':');
+		if (idx < 0) throw new RuntimeException("Could not find ':' in read name. Read: " + sr);
+		String umi = readName.substring(idx + 1);
+		sr.setAttribute(RX, umi);
 	}
 
 	/**
@@ -125,7 +144,7 @@ public class UmiRx {
 	 */
 	protected void process1(List<SAMRecord> srs) {
 		SAMRecord sr = srs.get(0);
-		umiToRx(sr);
+		addRx(sr);
 		addMq(sr, 0);
 		samWriter.addAlignment(sr);
 	}
@@ -152,8 +171,8 @@ public class UmiRx {
 		addMc(sr2, cigar1);
 
 		// Add UMIs
-		umiToRx(sr1);
-		umiToRx(sr2);
+		addRx(sr1);
+		addRx(sr2);
 
 		// Save
 		samWriter.addAlignment(sr1);
@@ -166,6 +185,7 @@ public class UmiRx {
 	protected void process3orMore(List<SAMRecord> srs) {
 		boolean ok = true;
 		int mq1 = 0, mq2 = 0;
+		String cigar1 = "", cigar2 = "";
 
 		// Get mapping qualities
 		for (SAMRecord sr : srs) {
@@ -173,8 +193,10 @@ public class UmiRx {
 				ok = false;
 			} else if (sr.getFirstOfPairFlag()) {
 				mq1 = Math.max(mq1, sr.getMappingQuality());
+				if (cigar1.isEmpty() || !sr.isSecondaryOrSupplementary()) cigar1 = sr.getCigarString();
 			} else if (sr.getSecondOfPairFlag()) {
 				mq2 = Math.max(mq1, sr.getMappingQuality());
+				if (cigar2.isEmpty() || !sr.isSecondaryOrSupplementary()) cigar2 = sr.getCigarString();
 			}
 		}
 
@@ -182,13 +204,15 @@ public class UmiRx {
 
 		// Set RX, MQ and save
 		for (SAMRecord sr : srs) {
-			umiToRx(sr); // Add RX tag
+			addRx(sr); // Add RX tag
 
 			// Add MQ tag (mapping quality of paired read)
 			if (sr.getFirstOfPairFlag()) {
 				addMq(sr, mq2);
+				addMc(sr, cigar2);
 			} else if (sr.getSecondOfPairFlag()) {
 				addMq(sr, mq1);
+				addMc(sr, cigar1);
 			}
 
 			// Save
@@ -211,9 +235,9 @@ public class UmiRx {
 			// Process the list of reads when the read name changes
 			String readName = sr.getReadName();
 			if (!readName.equals(readNamePrev)) {
-				if (readNamePrev.equals("A00324:79:HJ5CMDSXX:2:2167:8214:18255:TTTTTC")) {
-					System.out.println("DEBUG!");
-				}
+				//				if (readNamePrev.equals("A00324:79:HJ5CMDSXX:2:2167:8214:18255:TTTTTC")) {
+				//					System.out.println("DEBUG!");
+				//				}
 				// Read name changed, process reads, then clear list
 				process(srs);
 				srs.clear();
@@ -233,22 +257,6 @@ public class UmiRx {
 
 		process(srs); // Process last list of reads
 
-	}
-
-	/**
-	 * Get UMI from read name and add it as RX tag
-	 *
-	 * UMI is the last entry in the read name (when splitting by ':')
-	 * Example:
-	 * 		Read name: A00324:79:HJ5CMDSXX:2:1101:19705:1172:CGCACG
-	 *      UMI      : CGCACG
-	 */
-	protected void umiToRx(SAMRecord sr) {
-		String readName = sr.getReadName();
-		int idx = readName.lastIndexOf(':');
-		if (idx < 0) throw new RuntimeException("Could not find ':' in read name. Read: " + sr);
-		String umi = readName.substring(idx + 1);
-		sr.setAttribute(RX, umi);
 	}
 
 }
