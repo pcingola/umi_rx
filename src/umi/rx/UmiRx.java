@@ -30,6 +30,7 @@ import htsjdk.samtools.ValidationStringency;
  */
 public class UmiRx {
 
+	public static final String MC = SAMTag.MC.name();
 	public static final String MQ = SAMTag.MQ.name();
 	public static final String RX = SAMTag.RX.name();
 
@@ -65,10 +66,17 @@ public class UmiRx {
 	}
 
 	/**
+	 * Add MC tag
+	 */
+	void addMc(SAMRecord sr, String cigarMate) {
+		sr.setAttribute(MC, cigarMate);
+	}
+
+	/**
 	 * Add MQ tag
 	 */
-	void addMq(SAMRecord sr, int mq) {
-		sr.setAttribute(MQ, mq);
+	void addMq(SAMRecord sr, int qualMate) {
+		sr.setAttribute(MQ, qualMate);
 	}
 
 	/**
@@ -132,10 +140,16 @@ public class UmiRx {
 
 		int mq1 = sr1.getMappingQuality();
 		int mq2 = sr2.getMappingQuality();
+		String cigar1 = sr1.getCigarString();
+		String cigar2 = sr2.getCigarString();
 
-		// MQ tags is the mapping quality of the paired read
+		// MQ tags is the mapping quality of "mate read"
 		addMq(sr1, mq2);
 		addMq(sr2, mq1);
+
+		// MC tags is the cigar of "mate read"
+		addMc(sr1, cigar2);
+		addMc(sr2, cigar1);
 
 		// Add UMIs
 		umiToRx(sr1);
