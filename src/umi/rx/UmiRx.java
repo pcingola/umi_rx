@@ -54,11 +54,9 @@ public class UmiRx {
 
 		// Process input BAM, write output BAM
 		UmiRx umirx = new UmiRx(in, out);
-		System.err.println("Start:\n\tReading: " + in + "\n\tWriting: " + out);
 		umirx.open();
 		umirx.transform();
 		umirx.close();
-		System.err.println("Done");
 	}
 
 	public UmiRx(String inBam, String outBam) {
