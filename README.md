@@ -1,20 +1,21 @@
 
 # `umi_rx`
 
-Add UMI tag to `RX` tag in a BAM file
+Add UMI tag to `RX` tag in a BAM file, also add 'MQ' tag
 
 # Install
 
 ### Prerequisites
 
-- Install htslib in your local computer
-- Update this directory's `htslib` link to the path where you installed htslib
+- Java 12
 
 ### Compile
 
-Run the script
-```
-./script/make.sh
-```
+Run `ant`.
+The JAR file is created in the `build` directory.
 
-The executable is created in the `bin` directory.
+### Running
+
+```
+java -Xmx2G UmiRx.jar in.bam out.bam
+```
