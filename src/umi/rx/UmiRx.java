@@ -194,7 +194,6 @@ public class UmiRx {
 			// Save
 			samWriter.addAlignment(sr);
 		}
-
 	}
 
 	/**
@@ -212,6 +211,9 @@ public class UmiRx {
 			// Process the list of reads when the read name changes
 			String readName = sr.getReadName();
 			if (!readName.equals(readNamePrev)) {
+				if (readNamePrev.equals("A00324:79:HJ5CMDSXX:2:2167:8214:18255:TTTTTC")) {
+					System.out.println("DEBUG!");
+				}
 				// Read name changed, process reads, then clear list
 				process(srs);
 				srs.clear();
