@@ -35,20 +35,26 @@ public class UmiRx {
 
 	public static final String HOME = System.getProperty("user.home");
 	public static long MAX_READS = 100000;
-	public static long SHOW_EVERY = 1000;
+	public static long SHOW_EVERY = 100000;
 
-	boolean debug = true;
+	boolean debug = false;
 	boolean verbose = true;
 	String inBam, outBam;
 	SamReader samReader;
 	SAMFileWriter samWriter;
 
 	public static void main(String[] args) {
-		String in = HOME + "/umi_rx/in.bam";
-		String out = HOME + "/umi_rx/out.bam";
+		// Parse command line options
+		if (args.length != 2) {
+			System.err.println("Usage: java -jar UmiRx.jar input.bam output.bam");
+			System.exit(1);
+		}
+		String in = args[0];
+		String out = args[1];
 
+		// Process input BAM, write output BAM
 		UmiRx umirx = new UmiRx(in, out);
-		System.err.println("Start: Reading " + in);
+		System.err.println("Start:\n\tReading: " + in + "\n\tWriting: " + out);
 		umirx.open();
 		umirx.transform();
 		umirx.close();
