@@ -324,7 +324,9 @@ public class UmiRx {
 				addMq(sr, mq1);
 				addMc(sr, cigar1);
 			} else {
-				System.err.println("Neither pair: " + sr);
+				System.err.println("WARNIGN: Neither first nor second pair " + sr);
+				addMq(sr, 0);
+				addMc(sr, "");
 			}
 
 			// Save
@@ -371,7 +373,7 @@ public class UmiRx {
 	 * Note: We need to analyze all reads with the same read name at the same time
 	 */
 	protected void transformM() {
-		long readNum = 1;
+		long readNum = 0;
 		List<SAMRecord> srs = new ArrayList<>();
 
 		String readNamePrev = "";
@@ -408,7 +410,7 @@ public class UmiRx {
 	 * Note: We only need to analyze one read at a time
 	 */
 	protected void transformRx() {
-		long readNum = 1;
+		long readNum = 0;
 		for (SAMRecord sr : samReader) {
 
 			// Add RX tag and write read
