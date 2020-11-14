@@ -323,6 +323,8 @@ public class UmiRx {
 			} else if (sr.getSecondOfPairFlag()) {
 				addMq(sr, mq1);
 				addMc(sr, cigar1);
+			} else {
+				System.err.println("Neither pair: " + sr);
 			}
 
 			// Save
@@ -374,7 +376,6 @@ public class UmiRx {
 
 		String readNamePrev = "";
 		for (SAMRecord sr : samReader) {
-			readNum++;
 
 			// Collect all reads with the same name in a list
 			// Process the list of reads when the read name changes
@@ -395,10 +396,11 @@ public class UmiRx {
 				System.err.println("WARNING: Debug mode, breaking after " + MAX_READS + " reads");
 				break;
 			}
+			readNum++;
 		}
 
 		process(srs); // Process last list of reads
-
+		System.err.println(readNum + "\tcountMc: " + countMc + "\tcountMq: " + countMq + "\tcountRx: " + countRx);
 	}
 
 	/**
@@ -408,7 +410,6 @@ public class UmiRx {
 	protected void transformRx() {
 		long readNum = 1;
 		for (SAMRecord sr : samReader) {
-			readNum++;
 
 			// Add RX tag and write read
 			addRx(sr);
@@ -420,7 +421,9 @@ public class UmiRx {
 				System.err.println("WARNING: Debug mode, breaking after " + MAX_READS + " reads");
 				break;
 			}
+			readNum++;
 		}
+		System.err.println(readNum + "\tcountMc: " + countMc + "\tcountMq: " + countMq + "\tcountRx: " + countRx);
 	}
 
 }
