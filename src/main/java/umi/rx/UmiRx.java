@@ -5,6 +5,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMFileWriter;
 import htsjdk.samtools.SAMFileWriterFactory;
@@ -14,6 +22,7 @@ import htsjdk.samtools.SamInputResource;
 import htsjdk.samtools.SamReader;
 import htsjdk.samtools.SamReaderFactory;
 import htsjdk.samtools.ValidationStringency;
+import htsjdk.samtools.util.BlockCompressedOutputStream;
 
 /**
  * Some custom processing needed for some BAM files
@@ -38,45 +47,123 @@ public class UmiRx {
 	public static long MAX_READS = 100000;
 	public static long SHOW_EVERY = 100000;
 
+	boolean calcRx, calcMc, calcMq;
+	int compressionLevel;
+	long countMc, countMq, countRx;
 	boolean debug = false;
-	boolean verbose = true;
 	String inBam, outBam;
 	SamReader samReader;
 	SAMFileWriter samWriter;
+	boolean useSamOutput;
+	boolean verbose = true;
 
 	public static void main(String[] args) {
-		// Parse command line options
-		if (args.length != 2) {
-			System.err.println("Usage: java -jar UmiRx.jar input.bam output.bam");
-			System.exit(1);
-		}
-		String in = args[0];
-		String out = args[1];
+		// Parse command line
+		CommandLine cmd = parseCommandLine(args);
+		List<String> files = cmd.getArgList();
+		String in = files.get(0);
+		String out = files.get(1);
 
 		// Process input BAM, write output BAM
 		UmiRx umirx = new UmiRx(in, out);
+
+		// Compression level
+		if (cmd.hasOption("comp")) {
+			String compStr = cmd.getOptionValue("comp");
+			int level = Integer.parseInt(compStr);
+			umirx.setCompressionLevel(level);
+		}
+
+		// Other options
+		umirx.setDebug(cmd.hasOption('v'));
+		umirx.setVerbose(cmd.hasOption('d'));
+		umirx.setUseSamOutput(cmd.hasOption('s'));
+		umirx.setCalcMc(cmd.hasOption('c'));
+		umirx.setCalcMq(cmd.hasOption('q'));
+		umirx.setCalcRx(cmd.hasOption('x'));
+
+		// Process BAM
 		umirx.open();
 		umirx.transform();
 		umirx.close();
 	}
 
+	/**
+	 * Parse command line options
+	 */
+	protected static CommandLine parseCommandLine(String[] args) {
+		// Create command line options
+		Options options = new Options();
+		options.addOption(new Option("h", "help", false, "Help"));
+		options.addOption(new Option("d", "debug", false, "Debug mode, only porcess " + MAX_READS + " reads"));
+		options.addOption(new Option("v", "verbose", false, "Verbose"));
+		options.addOption(new Option("c", "mc", false, "Add MC tag (mate cigar)"));
+		options.addOption(new Option("q", "mq", false, "Add MQ tag (mate mapping quality)"));
+		options.addOption(new Option("x", "rx", false, "Add RX tag (UMI from read name)"));
+		options.addOption(new Option("s", "sam", false, "Use SAM output format instead ob BAM"));
+		Option comp = new Option("l", "comp", true, "Compression level for output BAM");
+		comp.setArgName("level");
+		options.addOption(comp);
+
+		// Parse command line options
+		CommandLineParser parser = new DefaultParser();
+		CommandLine cmd = null;
+		boolean showHelp = false;
+
+		// Parse args, show help if needed or if there are errors parsing
+		try {
+			cmd = parser.parse(options, args);
+
+			// Check command line options
+			if (cmd.hasOption('h')) {
+				// Show command help and exit
+				showHelp = true;
+			} else if (cmd.getArgList().size() != 2) {
+				System.out.println("Error: input.bam and output.bam must be provided");
+				showHelp = true;
+			} else if (!(cmd.hasOption('c') || cmd.hasOption('q') || cmd.hasOption('x'))) {
+				System.out.println("Error: At least one of the options {'--mc', '--mq', '--rx'} must be specified");
+				showHelp = true;
+			}
+		} catch (ParseException e) {
+			showHelp = true;
+			System.out.println(e.getMessage());
+		} finally {
+			if (showHelp) {
+				HelpFormatter formatter = new HelpFormatter();
+				formatter.printHelp("java -jar UmiRx.jar [OPTIONS] input.bam output.bam", options);
+				System.exit(1);
+			}
+		}
+
+		return cmd;
+	}
+
 	public UmiRx(String inBam, String outBam) {
 		this.inBam = inBam;
 		this.outBam = outBam;
+		compressionLevel = BlockCompressedOutputStream.getDefaultCompressionLevel();
+		countMc = countMq = countRx = 0;
 	}
 
 	/**
 	 * Add MC tag, if it doesn't exits
 	 */
 	void addMc(SAMRecord sr, String cigarMate) {
-		if (sr.getAttribute(MC) == null) sr.setAttribute(MC, cigarMate);
+		if (calcMc && sr.getAttribute(MC) == null) {
+			sr.setAttribute(MC, cigarMate);
+			countMc++;
+		}
 	}
 
 	/**
 	 * Add MQ tag, if it doesn't exits
 	 */
 	void addMq(SAMRecord sr, int qualMate) {
-		if (sr.getAttribute(MQ) == null) sr.setAttribute(MQ, qualMate);
+		if (calcMq && sr.getAttribute(MQ) == null) {
+			sr.setAttribute(MQ, qualMate);
+			countMq++;
+		}
 	}
 
 	/**
@@ -90,12 +177,13 @@ public class UmiRx {
 	 *      UMI      : CGCACG
 	 */
 	protected void addRx(SAMRecord sr) {
-		if (sr.getAttribute(RX) != null) return;
+		if (!calcRx || sr.getAttribute(RX) != null) return;
 		String readName = sr.getReadName();
 		int idx = readName.lastIndexOf(':');
 		if (idx < 0) throw new RuntimeException("Could not find ':' in read name. Read: " + sr);
 		String umi = readName.substring(idx + 1);
 		sr.setAttribute(RX, umi);
+		countRx++;
 	}
 
 	/**
@@ -110,6 +198,22 @@ public class UmiRx {
 		}
 	}
 
+	public int getCompressionLevel() {
+		return compressionLevel;
+	}
+
+	public boolean isDebug() {
+		return debug;
+	}
+
+	public boolean isUseSamOutput() {
+		return useSamOutput;
+	}
+
+	public boolean isVerbose() {
+		return verbose;
+	}
+
 	/**
 	 * Open input and output BAMs
 	 */
@@ -121,9 +225,12 @@ public class UmiRx {
 		SAMFileHeader samHeader = samReader.getFileHeader();
 
 		// Create output BAM file
-		//		SamInputResource samIn = inBam.equals("-") ? SamInputResource.of(System.in) : SamInputResource.of(inBam);
 		SAMFileWriterFactory swf = new SAMFileWriterFactory();
-		samWriter = outBam.equals("-") ? swf.makeBAMWriter(samHeader, false, System.out) : swf.makeBAMWriter(samHeader, false, new File(outBam));
+		if (useSamOutput) {
+			samWriter = outBam.equals("-") ? swf.makeSAMWriter(samHeader, false, System.out) : swf.makeSAMWriter(samHeader, false, new File(outBam));
+		} else {
+			samWriter = outBam.equals("-") ? swf.makeBAMWriter(samHeader, false, System.out) : swf.makeBAMWriter(samHeader, false, new File(outBam), compressionLevel);
+		}
 	}
 
 	protected void process(List<SAMRecord> srs) {
@@ -223,10 +330,45 @@ public class UmiRx {
 		}
 	}
 
-	/**
-	 * Transform all records from inBam and write them to outBam
-	 */
+	public void setCalcMc(boolean calcMc) {
+		this.calcMc = calcMc;
+	}
+
+	public void setCalcMq(boolean calcMq) {
+		this.calcMq = calcMq;
+	}
+
+	public void setCalcRx(boolean calcRx) {
+		this.calcRx = calcRx;
+	}
+
+	public void setCompressionLevel(int compressionLevel) {
+		this.compressionLevel = compressionLevel;
+	}
+
+	public void setDebug(boolean debug) {
+		this.debug = debug;
+	}
+
+	public void setUseSamOutput(boolean useSamOutput) {
+		this.useSamOutput = useSamOutput;
+	}
+
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
+	}
+
 	public void transform() {
+		if (calcMc || calcMq) transformM();
+		else transformRx();
+	}
+
+	/**
+	 * Transform records from inBam and write them to outBam
+	 * Add MC/MQ tags.
+	 * Note: We need to analyze all reads with the same read name at the same time
+	 */
+	protected void transformM() {
 		long readNum = 1;
 		List<SAMRecord> srs = new ArrayList<>();
 
@@ -248,7 +390,7 @@ public class UmiRx {
 			readNamePrev = readName;
 
 			// Show progress
-			if (readNum % SHOW_EVERY == 0) System.err.println(readNum + "\t" + sr);
+			if (readNum % SHOW_EVERY == 0) System.err.println(readNum + "\t" + sr + "\tcountMc: " + countMc + "\tcountMq: " + countMq + "\tcountRx: " + countRx);
 			if (debug && readNum > MAX_READS) {
 				System.err.println("WARNING: Debug mode, breaking after " + MAX_READS + " reads");
 				break;
@@ -257,6 +399,28 @@ public class UmiRx {
 
 		process(srs); // Process last list of reads
 
+	}
+
+	/**
+	 * Only add RX tag
+	 * Note: We only need to analyze one read at a time
+	 */
+	protected void transformRx() {
+		long readNum = 1;
+		for (SAMRecord sr : samReader) {
+			readNum++;
+
+			// Add RX tag and write read
+			addRx(sr);
+			samWriter.addAlignment(sr);
+
+			// Show progress
+			if (readNum % SHOW_EVERY == 0) System.err.println(readNum + "\t" + sr + "\tcountMc: " + countMc + "\tcountMq: " + countMq + "\tcountRx: " + countRx);
+			if (debug && readNum > MAX_READS) {
+				System.err.println("WARNING: Debug mode, breaking after " + MAX_READS + " reads");
+				break;
+			}
+		}
 	}
 
 }
