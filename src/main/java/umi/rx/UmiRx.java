@@ -44,8 +44,8 @@ public class UmiRx {
 	public static final String RX = SAMTag.RX.name();
 
 	public static final String HOME = System.getProperty("user.home");
-	public static long MAX_READS = 100000;
-	public static long SHOW_EVERY = 100000;
+	public static long MAX_READS = 1000000;
+	public static long SHOW_EVERY = 1000000;
 
 	boolean calcRx, calcMc, calcMq;
 	int compressionLevel;
@@ -60,9 +60,8 @@ public class UmiRx {
 	public static void main(String[] args) {
 		// Parse command line
 		CommandLine cmd = parseCommandLine(args);
-		List<String> files = cmd.getArgList();
-		String in = files.get(0);
-		String out = files.get(1);
+		String in = cmd.hasOption('i') ? cmd.getOptionValue('i') : "-";
+		String out = cmd.hasOption('o') ? cmd.getOptionValue('o') : "-";
 
 		// Process input BAM, write output BAM
 		UmiRx umirx = new UmiRx(in, out);
@@ -101,9 +100,18 @@ public class UmiRx {
 		options.addOption(new Option("q", "mq", false, "Add MQ tag (mate mapping quality)"));
 		options.addOption(new Option("x", "rx", false, "Add RX tag (UMI from read name)"));
 		options.addOption(new Option("s", "sam", false, "Use SAM output format instead ob BAM"));
+
 		Option comp = new Option("l", "comp", true, "Compression level for output BAM");
 		comp.setArgName("level");
 		options.addOption(comp);
+
+		Option in = new Option("i", "in", true, "Input BAM. Default: STDIN");
+		comp.setArgName("level");
+		options.addOption(in);
+
+		Option out = new Option("o", "out", true, "Output BAM/SAM. Default: STDIN");
+		comp.setArgName("level");
+		options.addOption(out);
 
 		// Parse command line options
 		CommandLineParser parser = new DefaultParser();
@@ -118,8 +126,8 @@ public class UmiRx {
 			if (cmd.hasOption('h')) {
 				// Show command help and exit
 				showHelp = true;
-			} else if (cmd.getArgList().size() != 2) {
-				System.out.println("Error: input.bam and output.bam must be provided");
+			} else if (cmd.getArgList().size() != 0) {
+				System.out.println("Error: Unknown parameters " + cmd.getArgList());
 				showHelp = true;
 			} else if (!(cmd.hasOption('c') || cmd.hasOption('q') || cmd.hasOption('x'))) {
 				System.out.println("Error: At least one of the options {'--mc', '--mq', '--rx'} must be specified");
@@ -131,7 +139,7 @@ public class UmiRx {
 		} finally {
 			if (showHelp) {
 				HelpFormatter formatter = new HelpFormatter();
-				formatter.printHelp("java -jar UmiRx.jar [OPTIONS] input.bam output.bam", options);
+				formatter.printHelp("java -jar UmiRx.jar [OPTIONS]", options);
 				System.exit(1);
 			}
 		}
