@@ -264,6 +264,7 @@ public class UmiRx {
 		SAMRecord sr = srs.get(0);
 		addRx(sr);
 		addMq(sr, 0);
+		addMc(sr, "");
 		samWriter.addAlignment(sr);
 	}
 
